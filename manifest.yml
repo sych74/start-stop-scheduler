@@ -206,6 +206,24 @@ actions:
         return resp;
 
   create:
+    - script: |
+        var name = "${env.envName}-start-stop";
+        var appid = "${globals.appid}";
+        var uninstallName = "uninstall-" + name;
+        var createServiceName = name + "-create-service";
+        api.dev.scripting.DeleteScript({ appid: appid, name: name });
+        api.dev.scripting.DeleteScript({ appid: appid, name: uninstallName });
+        api.dev.scripting.DeleteScript({ appid: appid, name: createServiceName });
+        var resp = api.utils.scheduler.GetTasks({ appid: appid });
+        if (resp.result == 0 && resp.objects) {
+          var delTasks = [];
+          for (var i = 0, l = resp.objects.length; i < l; i++) {
+            var s = resp.objects[i].script;
+            if (s == name || s == createServiceName || s == uninstallName) delTasks.push(resp.objects[i].id);
+          }
+          if (delTasks.length) api.utils.scheduler.DeleteTasks({ appid: appid, ids: delTasks });
+        }
+        return { result: 0 };
     - convert
     - execScript: "${baseUrl}/scripts/start-stop.js?r_${fn.random}"
     - script: |
